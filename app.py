@@ -2,13 +2,35 @@ import streamlit as st
 import folium
 from streamlit_folium import folium_static
 import pandas as pd
+import streamlit.components.v1 as components
 
 # Page config
 st.set_page_config(
     page_title="Connect You - Store Locator",
     page_icon="🏪",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
+
+# Load CSS
+with open('style.css') as f:
+    st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+# Navigation HTML
+nav_html = """
+<div class="navbar">
+    <div style="display: flex; align-items: center;">
+        <h1 style="margin: 0; font-size: 1.5rem;">Connect You</h1>
+    </div>
+    <div style="display: flex; gap: 2rem;">
+        <a href="/" style="color: white; text-decoration: none;">Home</a>
+        <a href="/stores" style="color: white; text-decoration: none;">Stores</a>
+        <a href="/products" style="color: white; text-decoration: none;">Products</a>
+        <a href="/feedback" style="color: white; text-decoration: none;">Feedback</a>
+    </div>
+</div>
+"""
+st.markdown(nav_html, unsafe_allow_html=True)
 
 # Sample store data
 @st.cache_data
@@ -41,57 +63,88 @@ def load_store_data():
     })
 
 def main():
-    st.title("Connect You - Store Locator")
+    # App title with styling
+    st.markdown("""
+        <h1 style='text-align: center; color: #1a1a1a; margin-bottom: 2rem;'>
+            Find Stores Near You
+        </h1>
+    """, unsafe_allow_html=True)
 
-    # Sidebar filters
-    st.sidebar.title("Filters")
-    store_type = st.sidebar.selectbox(
-        "Store Type",
-        ["All", "Grocery", "Books", "General"]
-    )
-    
-    search_query = st.sidebar.text_input("Search Stores")
+    # Sidebar filters with better styling
+    with st.sidebar:
+        st.markdown("""
+            <h2 style='color: #1a1a1a; margin-bottom: 1rem;'>Filters</h2>
+        """, unsafe_allow_html=True)
+        
+        store_type = st.selectbox(
+            "Store Type",
+            ["All", "Grocery", "Books", "General"],
+            key="store_type"
+        )
+        
+        search_query = st.text_input(
+            "Search Stores",
+            key="search",
+            placeholder="Enter store name or address..."
+        )
 
-    # Load data
+    # Load and filter data
     df = load_store_data()
-
-    # Filter data
     if store_type != "All":
         df = df[df['type'] == store_type.lower()]
     if search_query:
         df = df[df['name'].str.contains(search_query, case=False) | 
                 df['address'].str.contains(search_query, case=False)]
 
-    # Create two columns
+    # Create responsive layout
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        # Create map
-        m = folium.Map(location=[40.7128, -74.0060], zoom_start=13)
+        # Create map with custom styling
+        m = folium.Map(
+            location=[40.7128, -74.0060],
+            zoom_start=13,
+            tiles="CartoDB positron"
+        )
         
-        # Add markers
+        # Add markers with custom styling
         for idx, row in df.iterrows():
             folium.Marker(
                 [row['lat'], row['lon']],
-                popup=f"{row['name']}<br>{row['address']}<br>Rating: {row['rating']}⭐",
-                tooltip=row['name']
+                popup=f"""
+                    <div style='font-family: Arial, sans-serif; padding: 10px;'>
+                        <h4 style='margin: 0 0 5px 0;'>{row['name']}</h4>
+                        <p style='margin: 0 0 5px 0;'>{row['address']}</p>
+                        <p style='margin: 0;'>Rating: {row['rating']}⭐</p>
+                    </div>
+                """,
+                tooltip=row['name'],
+                icon=folium.Icon(color='blue', icon='info-sign')
             ).add_to(m)
         
-        # Display map
-        folium_static(m)
+        # Display map with fixed size
+        folium_static(m, width=800, height=600)
 
     with col2:
-        # Display store list
-        st.subheader("Stores")
+        # Display store list with enhanced styling
+        st.markdown("<h2 style='color: #1a1a1a; margin-bottom: 1rem;'>Nearby Stores</h2>", unsafe_allow_html=True)
+        
+        if len(df) == 0:
+            st.info("No stores found matching your criteria.")
+        
         for idx, row in df.iterrows():
-            with st.container():
-                st.markdown(f"""
-                    ### {row['name']}
-                    **Address:** {row['address']}  
-                    **Type:** {row['type'].capitalize()}  
-                    **Rating:** {row['rating']}⭐
-                    ---
-                """)
+            st.markdown(f"""
+                <div class="store-card">
+                    <h3 style="color: #1a1a1a; margin-bottom: 0.5rem;">{row['name']}</h3>
+                    <p style="color: #666; margin-bottom: 0.5rem;"><strong>Address:</strong> {row['address']}</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="background-color: #e3f2fd; color: #1976d2; padding: 4px 8px; border-radius: 4px; font-size: 0.875rem;">
+                            {row['type'].capitalize()}
+                        </span>
+                        <span style="color: #f9a825; font-size: 1rem;">{'⭐' * int(row['rating'])} {row['rating']}</span>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()

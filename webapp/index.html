@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect You - Store Locator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/mapbox-gl@2.15.0/dist/mapbox-gl.css" rel="stylesheet">
+    <script src="https://unpkg.com/mapbox-gl@2.15.0/dist/mapbox-gl.js"></script>
+    <style>
+        .mapboxgl-map {
+            width: 100%;
+            height: 100%;
+            border-radius: 0.5rem;
+        }
+        @media (max-width: 768px) {
+            .store-list {
+                max-height: 40vh;
+            }
+            .map-container {
+                height: 40vh;
+            }
+        }
+        @media (min-width: 769px) {
+            .store-list {
+                max-height: 80vh;
+            }
+            .map-container {
+                height: 80vh;
+            }
+        }
+        .bottom-sheet {
+            transition: transform 0.3s ease-in-out;
+        }
+        .bottom-sheet.expanded {
+            transform: translateY(0);
+        }
+        .bottom-sheet.collapsed {
+            transform: translateY(calc(100% - 60px));
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-blue-600 text-white">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold">Connect You</span>
+                </div>
+                <div class="hidden md:flex space-x-4">
+                    <a href="#" class="hover:text-gray-200">Home</a>
+                    <a href="#" class="hover:text-gray-200">Stores</a>
+                    <a href="#" class="hover:text-gray-200">Products</a>
+                    <a href="#" class="hover:text-gray-200">Account</a>
+                </div>
+                <button class="md:hidden" onclick="toggleMenu()">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="hidden md:hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <a href="#" class="block px-3 py-2 hover:bg-blue-700 rounded">Home</a>
+                <a href="#" class="block px-3 py-2 hover:bg-blue-700 rounded">Stores</a>
+                <a href="#" class="block px-3 py-2 hover:bg-blue-700 rounded">Products</a>
+                <a href="#" class="block px-3 py-2 hover:bg-blue-700 rounded">Account</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- Search Bar -->
+        <div class="mb-6">
+            <div class="flex gap-4 flex-wrap md:flex-nowrap">
+                <input 
+                    type="text" 
+                    placeholder="Search stores..." 
+                    class="w-full md:w-2/3 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                <select class="w-full md:w-1/3 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all">All Categories</option>
+                    <option value="grocery">Grocery</option>
+                    <option value="books">Books</option>
+                    <option value="general">General</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Desktop Layout -->
+        <div class="hidden md:flex gap-6">
+            <!-- Map -->
+            <div class="w-2/3 map-container">
+                <div id="map" class="w-full h-full rounded-lg shadow-lg"></div>
+            </div>
+
+            <!-- Store List -->
+            <div class="w-1/3">
+                <div class="bg-white rounded-lg shadow-lg p-4">
+                    <h2 class="text-xl font-bold mb-4">Nearby Stores</h2>
+                    <div class="store-list overflow-y-auto">
+                        <div id="storeList">
+                            <!-- Store items will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Layout -->
+        <div class="md:hidden">
+            <!-- Map -->
+            <div class="map-container mb-4">
+                <div id="mapMobile" class="w-full h-full rounded-lg shadow-lg"></div>
+            </div>
+
+            <!-- Bottom Sheet for Store List -->
+            <div id="bottomSheet" class="bottom-sheet fixed left-0 right-0 bottom-0 bg-white rounded-t-2xl shadow-lg p-4 z-50 collapsed">
+                <div class="flex justify-between items-center mb-4" onclick="toggleBottomSheet()">
+                    <h2 class="text-xl font-bold">Nearby Stores</h2>
+                    <i class="fas fa-chevron-up"></i>
+                </div>
+                <div class="store-list overflow-y-auto pb-20">
+                    <div id="storeListMobile">
+                        <!-- Store items will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Initialize maps
+        mapboxgl.accessToken = 'your_mapbox_token';
+        const mapOptions = {
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v11',
+            center: [-74.0060, 40.7128],
+            zoom: 12
+        };
+        const map = new mapboxgl.Map(mapOptions);
+        const mapMobile = new mapboxgl.Map({...mapOptions, container: 'mapMobile'});
+
+        // Sample store data
+        const stores = [
+            {
+                name: 'Central Grocery',
+                type: 'grocery',
+                address: '123 Main St',
+                rating: 4.5,
+                coordinates: [-74.0060, 40.7128]
+            },
+            {
+                name: 'City Books',
+                type: 'books',
+                address: '456 Book Lane',
+                rating: 4.8,
+                coordinates: [-74.0070, 40.7138]
+            },
+            {
+                name: 'Downtown General Store',
+                type: 'general',
+                address: '789 Market St',
+                rating: 4.2,
+                coordinates: [-74.0080, 40.7148]
+            }
+        ];
+
+        // Create store list items
+        function createStoreElement(store) {
+            return `
+                <div class="bg-white rounded-lg shadow p-4 mb-4 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold text-lg">${store.name}</h3>
+                            <p class="text-gray-600">${store.address}</p>
+                        </div>
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                            ${store.type}
+                        </span>
+                    </div>
+                    <div class="mt-2 flex items-center">
+                        <span class="text-yellow-500">★</span>
+                        <span class="ml-1">${store.rating}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Populate store lists
+        stores.forEach(store => {
+            // Add markers to maps
+            new mapboxgl.Marker()
+                .setLngLat(store.coordinates)
+                .addTo(map);
+            new mapboxgl.Marker()
+                .setLngLat(store.coordinates)
+                .addTo(mapMobile);
+
+            // Add store listings
+            const storeElement = createStoreElement(store);
+            document.getElementById('storeList').innerHTML += storeElement;
+            document.getElementById('storeListMobile').innerHTML += storeElement;
+        });
+
+        // Mobile menu toggle
+        function toggleMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Bottom sheet toggle
+        function toggleBottomSheet() {
+            const bottomSheet = document.getElementById('bottomSheet');
+            bottomSheet.classList.toggle('collapsed');
+            bottomSheet.classList.toggle('expanded');
+        }
+    </script>
+</body>
+</html>

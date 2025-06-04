@@ -1,0 +1,61 @@
+/* Global styles */
+.stApp {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+/* Navigation styling */
+.navbar {
+    background-color: #0070f3;
+    padding: 1rem 2rem;
+    margin: -1rem -1rem 2rem -1rem;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.store-card {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+}
+
+.store-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+    transition: all 0.2s ease;
+}
+
+/* Responsive layout */
+@media (max-width: 768px) {
+    .store-card {
+        padding: 1rem;
+    }
+    
+    .navbar {
+        flex-direction: column;
+        text-align: center;
+        padding: 1rem;
+    }
+}
+
+/* Sidebar styling */
+.css-1d391kg {
+    background-color: #f8f9fa;
+}
+
+.stSelectbox > div > div {
+    background-color: white;
+    border-radius: 4px;
+}
+
+/* Map container */
+.folium-map {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
