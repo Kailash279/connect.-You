@@ -1,149 +1,126 @@
 'use client';
 
 import { useState } from 'react';
+import { Line, Bar } from 'react-chartjs-2';
+import AnalyticsLayout from '@/components/AnalyticsLayout';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
 
-interface AnalyticsData {
-  totalUsers: number;
-  activeUsers: number;
-  newUsersToday: number;
-  totalStores: number;
-  totalOrders: number;
-  platformRevenue: number;
-  userGrowth: number[];
-  storeGrowth: number[];
-}
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
-const mockData: AnalyticsData = {
-  totalUsers: 12458,
-  activeUsers: 3254,
-  newUsersToday: 127,
-  totalStores: 543,
-  totalOrders: 28976,
-  platformRevenue: 289760.50,
-  userGrowth: [1200, 1350, 1500, 1800, 2100, 2400, 2800],
-  storeGrowth: [100, 150, 200, 280, 350, 450, 543]
-};
+export default function AdminAnalytics() {
+  const [timeframe, setTimeframe] = useState('month');
 
-export default function DeveloperAnalytics() {
-  const [timeRange, setTimeRange] = useState('week');
-  const [data] = useState<AnalyticsData>(mockData);
+  // Sample data - replace with actual data from your backend
+  const userActivityData = {
+    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    datasets: [
+      {
+        label: 'Active Users',
+        data: [250, 280, 310, 290, 320, 350, 300],
+        borderColor: 'rgb(75, 192, 192)',
+        tension: 0.1
+      }
+    ]
+  };
+
+  const storePerformanceData = {
+    labels: ['Store A', 'Store B', 'Store C', 'Store D', 'Store E'],
+    datasets: [{
+      label: 'Monthly Revenue',
+      data: [12000, 9000, 15000, 8000, 11000],
+      backgroundColor: 'rgba(54, 162, 235, 0.5)',
+    }]
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Developer Analytics Dashboard</h1>
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-          >
-            <option value="day">Last 24 Hours</option>
-            <option value="week">Last Week</option>
-            <option value="month">Last Month</option>
-            <option value="year">Last Year</option>
-          </select>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-600">Total Users</h3>
-            <p className="text-3xl font-bold text-primary mt-2">{data.totalUsers.toLocaleString()}</p>
-            <div className="text-sm text-green-600 mt-2">
-              +{data.newUsersToday} today
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-600">Active Users</h3>
-            <p className="text-3xl font-bold text-primary mt-2">{data.activeUsers.toLocaleString()}</p>
-            <div className="text-sm text-gray-500 mt-2">
-              {Math.round((data.activeUsers / data.totalUsers) * 100)}% of total users
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-600">Total Stores</h3>
-            <p className="text-3xl font-bold text-primary mt-2">{data.totalStores.toLocaleString()}</p>
-            <div className="text-sm text-gray-500 mt-2">
-              Across all categories
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-600">Platform Revenue</h3>
-            <p className="text-3xl font-bold text-primary mt-2">
-              ${data.platformRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </p>
-            <div className="text-sm text-gray-500 mt-2">
-              From {data.totalOrders.toLocaleString()} orders
-            </div>
+    <AnalyticsLayout>
+      <div className="py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-4">Admin Analytics</h1>
+          <div className="flex gap-4 mb-6">
+            <select 
+              value={timeframe}
+              onChange={(e) => setTimeframe(e.target.value)}
+              className="p-2 border rounded-md"
+            >
+              <option value="week">Last Week</option>
+              <option value="month">Last Month</option>
+              <option value="year">Last Year</option>
+            </select>
           </div>
         </div>
 
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-xl font-semibold mb-4">User Growth</h3>
-            <div className="h-64 flex items-end space-x-2">
-              {data.userGrowth.map((value, index) => (
-                <div 
-                  key={index}
-                  className="bg-primary hover:bg-blue-600 transition-all"
-                  style={{ 
-                    height: `${(value / Math.max(...data.userGrowth)) * 100}%`,
-                    width: '12%'
-                  }}
-                >
-                  <div className="text-xs text-center text-white mt-2 transform -rotate-90">
-                    {value}
-                  </div>
-                </div>
-              ))}
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-medium text-gray-800">Total Revenue</h3>
+            <p className="text-3xl font-bold text-blue-600">$55,240</p>
+            <p className="text-sm text-green-500">↑ 12% from last month</p>
           </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-xl font-semibold mb-4">Store Growth</h3>
-            <div className="h-64 flex items-end space-x-2">
-              {data.storeGrowth.map((value, index) => (
-                <div 
-                  key={index}
-                  className="bg-blue-400 hover:bg-blue-500 transition-all"
-                  style={{ 
-                    height: `${(value / Math.max(...data.storeGrowth)) * 100}%`,
-                    width: '12%'
-                  }}
-                >
-                  <div className="text-xs text-center text-white mt-2 transform -rotate-90">
-                    {value}
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-medium text-gray-800">Active Stores</h3>
+            <p className="text-3xl font-bold text-blue-600">95</p>
+            <p className="text-sm text-green-500">↑ 8% from last month</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-medium text-gray-800">User Engagement</h3>
+            <p className="text-3xl font-bold text-blue-600">78%</p>
+            <p className="text-sm text-green-500">↑ 5% from last month</p>
           </div>
         </div>
 
-        {/* System Status */}
-        <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-semibold mb-4">System Status</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span>API: Operational</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span>Database: Connected</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span>Server Load: Normal</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold mb-4">User Activity</h2>
+            <Line data={userActivityData} />
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold mb-4">Top Performing Stores</h2>
+            <Bar data={storePerformanceData} />
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md col-span-2">
+            <h2 className="text-xl font-semibold mb-4">System Health</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-800">Server Uptime</h3>
+                <p className="text-2xl font-bold text-green-600">99.9%</p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-800">Average Response Time</h3>
+                <p className="text-2xl font-bold text-green-600">120ms</p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-800">Error Rate</h3>
+                <p className="text-2xl font-bold text-green-600">0.1%</p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-800">Active Sessions</h3>
+                <p className="text-2xl font-bold text-green-600">1,234</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </AnalyticsLayout>
   );
 }

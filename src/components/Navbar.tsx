@@ -31,9 +31,9 @@ export default function Navbar() {
           <Link href="/" className="text-white hover:text-gray-200">Home</Link>
           <Link href="/stores" className="text-white hover:text-gray-200">Find Stores</Link>
           <Link href="/products" className="text-white hover:text-gray-200">Products</Link>
+          <Link href="/analytics" className="text-white hover:text-gray-200">Analytics</Link>
+          <Link href="/shop/dashboard" className="text-white hover:text-gray-200">Shop Dashboard</Link>
           <Link href="/feedback" className="text-white hover:text-gray-200">Feedback</Link>
-          <Link href="/admin/analytics" className="text-white hover:text-gray-200">Admin Analytics</Link>
-          <Link href="/shop/analytics" className="text-white hover:text-gray-200">Shop Analytics</Link>
           <Link href="/signin" className="text-white hover:text-gray-200">Sign In</Link>
         </div>
 
@@ -47,6 +47,8 @@ export default function Navbar() {
             <Link href="/" className="text-white py-3 w-full text-center hover:bg-primary-dark active:bg-primary-darker transition-colors">Home</Link>
             <Link href="/stores" className="text-white py-3 w-full text-center hover:bg-primary-dark active:bg-primary-darker transition-colors">Find Stores</Link>
             <Link href="/products" className="text-white py-3 w-full text-center hover:bg-primary-dark active:bg-primary-darker transition-colors">Products</Link>
+            <Link href="/analytics" className="text-white py-3 w-full text-center hover:bg-primary-dark active:bg-primary-darker transition-colors">Analytics</Link>
+            <Link href="/shop/dashboard" className="text-white py-3 w-full text-center hover:bg-primary-dark active:bg-primary-darker transition-colors">Shop Dashboard</Link>
             <Link href="/feedback" className="text-white py-3 w-full text-center hover:bg-primary-dark active:bg-primary-darker transition-colors">Feedback</Link>
             <Link href="/signin" className="text-white py-3 w-full text-center hover:bg-primary-dark active:bg-primary-darker transition-colors">Sign In</Link>
           </div>
