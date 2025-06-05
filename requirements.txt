@@ -1,6 +1,6 @@
-streamlit==1.25.0
-folium==0.14.0
-streamlit-folium==0.13.0
+flask==2.0.1
+flask-cors==3.0.10
 pandas==2.0.3
-streamlit 
-folium 
+python-dotenv==0.19.2
+requests==2.27.1
+folium==0.14.0

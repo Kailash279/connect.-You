@@ -1,0 +1,64 @@
+{
+  "stores": [
+    {
+      "id": 1,
+      "name": "Central Grocery",
+      "type": "grocery",
+      "address": "123 Main St, New York, NY",
+      "lat": 40.7128,
+      "lon": -74.006,
+      "rating": 4.5,
+      "reviews": 120,
+      "description": "Your one-stop shop for fresh groceries",
+      "hours": "8:00 AM - 10:00 PM"
+    },
+    {
+      "id": 2,
+      "name": "City Books",
+      "type": "books",
+      "address": "456 Book Lane, New York, NY",
+      "lat": 40.7138,
+      "lon": -74.007,
+      "rating": 4.8,
+      "reviews": 85,
+      "description": "Wide selection of books and magazines",
+      "hours": "9:00 AM - 9:00 PM"
+    },
+    {
+      "id": 3,
+      "name": "Electronics Hub",
+      "type": "electronics",
+      "address": "789 Tech Ave, New York, NY",
+      "lat": 40.7148,
+      "lon": -74.008,
+      "rating": 4.2,
+      "reviews": 95,
+      "description": "Latest gadgets and electronics",
+      "hours": "10:00 AM - 8:00 PM"
+    },
+    {
+      "id": 4,
+      "name": "Fashion Store",
+      "type": "clothing",
+      "address": "321 Fashion Blvd, New York, NY",
+      "lat": 40.7158,
+      "lon": -74.009,
+      "rating": 4.6,
+      "reviews": 150,
+      "description": "Trendy fashion for all ages",
+      "hours": "10:00 AM - 9:00 PM"
+    },
+    {
+      "id": 5,
+      "name": "General Shop",
+      "type": "general",
+      "address": "654 Market St, New York, NY",
+      "lat": 40.7168,
+      "lon": -74.01,
+      "rating": 4.4,
+      "reviews": 75,
+      "description": "Everything you need under one roof",
+      "hours": "8:00 AM - 11:00 PM"
+    }
+  ]
+}

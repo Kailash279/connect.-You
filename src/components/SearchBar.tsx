@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import debounce from 'lodash/debounce';
+import { fetchStoreTypes } from '@/utils/api';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -11,6 +12,23 @@ interface SearchBarProps {
 export default function SearchBar({ onSearch, onTypeChange }: SearchBarProps) {
   const [localSearch, setLocalSearch] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [storeTypes, setStoreTypes] = useState<string[]>([]);
+  const [isLoadingTypes, setIsLoadingTypes] = useState(true);
+
+  useEffect(() => {
+    const loadStoreTypes = async () => {
+      try {
+        const response = await fetchStoreTypes();
+        setStoreTypes(['all', ...response.types]);
+      } catch (error) {
+        console.error('Error loading store types:', error);
+      } finally {
+        setIsLoadingTypes(false);
+      }
+    };
+
+    loadStoreTypes();
+  }, []);
 
   // Debounce the search to prevent too many rapid searches
   const debouncedSearch = useCallback(
@@ -25,12 +43,6 @@ export default function SearchBar({ onSearch, onTypeChange }: SearchBarProps) {
     onSearch(localSearch);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setLocalSearch(value);
-    debouncedSearch(value);
-  };
-
   return (
     <div className="mb-6">
       <form onSubmit={handleSearch} className="space-y-4">
@@ -43,7 +55,10 @@ export default function SearchBar({ onSearch, onTypeChange }: SearchBarProps) {
               focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
               ${isFocused ? 'shadow-lg' : 'shadow-sm'}`}
             value={localSearch}
-            onChange={handleInputChange}
+            onChange={(e) => {
+              setLocalSearch(e.target.value);
+              if (!e.target.value) onSearch('');
+            }}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
           />
@@ -68,18 +83,26 @@ export default function SearchBar({ onSearch, onTypeChange }: SearchBarProps) {
         {/* Store Type Select */}
         <div className="relative">
           <select
-            className="w-full p-3 pl-4 pr-10 border rounded-lg bg-white shadow-sm
+            className={`w-full p-3 pl-4 pr-10 border rounded-lg bg-white shadow-sm
               focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-              appearance-none cursor-pointer text-base"
+              appearance-none cursor-pointer text-base
+              ${isLoadingTypes ? 'text-gray-400' : ''}`}
             onChange={(e) => onTypeChange(e.target.value)}
             defaultValue="all"
+            disabled={isLoadingTypes}
           >
-            <option value="all">All Stores</option>
-            <option value="grocery">Grocery Stores</option>
-            <option value="books">Book Stores</option>
-            <option value="general">General Shops</option>
-            <option value="clothing">Clothing Stores</option>
-            <option value="electronics">Electronics Stores</option>
+            {isLoadingTypes ? (
+              <option value="all">Loading store types...</option>
+            ) : (
+              storeTypes.map(type => (
+                <option key={type} value={type}>
+                  {type === 'all' 
+                    ? 'All Stores'
+                    : type.charAt(0).toUpperCase() + type.slice(1) + ' Stores'
+                  }
+                </option>
+              ))
+            )}
           </select>
           <div className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2">
             <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

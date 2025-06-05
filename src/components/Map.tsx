@@ -1,36 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import type mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Store } from '@/types/store';
+import { fetchStores } from '@/utils/api';
 
 interface MapProps {
   searchQuery: string;
   selectedType: string;
 }
-
-// Sample store data with coordinates (you would typically fetch this from an API)
-const sampleStores: (Store & { coordinates: [number, number] })[] = [
-  {
-    id: 1,
-    name: 'Central Grocery',
-    type: 'grocery',
-    address: '123 Main St',
-    distance: '0.5 km',
-    rating: 4.5,
-    coordinates: [-74.006, 40.7128]
-  },
-  {
-    id: 2,
-    name: 'City Books',
-    type: 'books',
-    address: '456 Book Lane',
-    distance: '1.2 km',
-    rating: 4.8,
-    coordinates: [-74.009, 40.7138]
-  },
-];
 
 export default function Map({ searchQuery, selectedType }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -40,7 +19,20 @@ export default function Map({ searchQuery, selectedType }: MapProps) {
   const [isMapExpanded, setIsMapExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [stores, setStores] = useState<Store[]>([]);
 
+  // Fetch stores from API
+  const loadStores = useCallback(async () => {
+    try {
+      const response = await fetchStores(selectedType, searchQuery);
+      setStores(response.stores);
+    } catch (err) {
+      console.error('Error loading stores:', err);
+      setError('Failed to load store data');
+    }
+  }, [searchQuery, selectedType]);
+
+  // Load Mapbox
   useEffect(() => {
     if (typeof window !== 'undefined') {
       import('mapbox-gl').then((mapbox) => {
@@ -53,134 +45,188 @@ export default function Map({ searchQuery, selectedType }: MapProps) {
     }
   }, []);
 
-  const addMarkers = () => {
+  const createMarkerElement = (store: Store) => {
+    const el = document.createElement('div');
+    el.className = 'store-marker';
+    el.innerHTML = `
+      <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center shadow-lg transform -translate-x-1/2 -translate-y-1/2 cursor-pointer hover:scale-110 transition-transform">
+        ${getStoreIcon(store.type)}
+      </div>
+    `;
+    return el;
+  };
+
+  const getStoreIcon = (type: Store['type']) => {
+    const icons = {
+      grocery: '🛒',
+      books: '📚',
+      electronics: '💻',
+      clothing: '👕',
+      general: '🏪'
+    };
+    return icons[type] || '📍';
+  };
+
+  const createPopupContent = (store: Store) => {
+    return `
+      <div class="p-3 max-w-sm">
+        <h3 class="font-bold text-lg mb-1">${store.name}</h3>
+        <p class="text-gray-600 mb-2">${store.address}</p>
+        <p class="text-sm text-gray-500 mb-2">${store.hours}</p>
+        <div class="flex items-center justify-between">
+          <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+            ${store.type.charAt(0).toUpperCase() + store.type.slice(1)}
+          </span>
+          <div class="flex items-center gap-1">
+            <span class="text-yellow-500">⭐</span>
+            <span class="font-medium">${store.rating.toFixed(1)}</span>
+            <span class="text-gray-500 text-sm">(${store.reviews})</span>
+          </div>
+        </div>
+      </div>
+    `;
+  };
+
+  const addMarkers = useCallback(() => {
     if (!map.current || !mapboxInstance) return;
 
     // Remove existing markers
     markers.current.forEach(marker => marker.remove());
     markers.current = [];
 
-    // Filter stores based on search and type
-    const filteredStores = sampleStores.filter(store => {
-      const matchesSearch = store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          store.address.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesType = selectedType === 'all' || store.type === selectedType;
-      return matchesSearch && matchesType;
-    });
-
     // Add new markers
-    filteredStores.forEach(store => {
-      const el = document.createElement('div');
-      el.className = 'store-marker';
+    stores.forEach(store => {
+      const el = createMarkerElement(store);
       
       const marker = new mapboxInstance.Marker(el)
-        .setLngLat(store.coordinates)
+        .setLngLat([store.lon, store.lat])
         .setPopup(
-          new mapboxInstance.Popup({ offset: 25 })
-            .setHTML(
-              `<h3 class="font-bold">${store.name}</h3>
-               <p>${store.address}</p>
-               <p>Rating: ${store.rating}⭐</p>`
-            )
+          new mapboxInstance.Popup({ 
+            offset: 25,
+            closeButton: false,
+            className: 'store-popup'
+          })
+            .setHTML(createPopupContent(store))
         )
         .addTo(map.current!);
       
       markers.current.push(marker);
     });
-  };
 
+    // Fit bounds to show all markers
+    if (stores.length > 0) {
+      const bounds = new mapboxInstance.LngLatBounds();
+      stores.forEach(store => bounds.extend([store.lon, store.lat]));
+      map.current.fitBounds(bounds, {
+        padding: 50,
+        maxZoom: 15,
+        duration: 1000
+      });
+    }
+  }, [stores, mapboxInstance]);
+
+  // Initialize map
   useEffect(() => {
     if (typeof window === 'undefined' || !mapContainer.current || !mapboxInstance) return;
 
     if (!map.current) {
-      mapboxInstance.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
+      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      if (!token) {
+        setError('Missing Mapbox token');
+        return;
+      }
+
+      mapboxInstance.accessToken = token;
       
       try {
         map.current = new mapboxInstance.Map({
           container: mapContainer.current,
-          style: 'mapbox://styles/mapbox/streets-v12',
-          center: [-74.006, 40.7128], // New York City coordinates
-          zoom: 13
+          style: 'mapbox://styles/mapbox/light-v11',
+          center: [-74.006, 40.7128],
+          zoom: 13,
+          pitchWithRotate: false,
+          attributionControl: false
         });
 
-        // Add navigation controls
-        map.current.addControl(new mapboxInstance.NavigationControl());
-        
-        // Get user location
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              if (map.current) {
-                map.current.flyTo({
-                  center: [position.coords.longitude, position.coords.latitude],
-                  zoom: 13
-                });
-              }
-            },
-            (error) => {
-              console.error('Error getting location:', error);
-            }
-          );
-        }
+        // Add controls
+        map.current.addControl(new mapboxInstance.NavigationControl(), 'top-right');
+        map.current.addControl(new mapboxInstance.GeolocateControl({
+          positionOptions: { enableHighAccuracy: true },
+          trackUserLocation: true
+        }), 'top-right');
 
+        // Load initial data
+        loadStores();
         map.current.on('load', addMarkers);
       } catch (error) {
         console.error('Error initializing map:', error);
+        setError('Failed to initialize map');
       }
     }
 
     return () => {
       if (map.current) {
         map.current.remove();
+        map.current = null;
       }
       markers.current.forEach(marker => marker.remove());
     };
-  }, [mapboxInstance]);
+  }, [mapboxInstance, loadStores, addMarkers]);
 
-  // Update markers when search or type changes
+  // Update markers when stores change
+  useEffect(() => {
+    loadStores();
+  }, [searchQuery, selectedType, loadStores]);
+
   useEffect(() => {
     addMarkers();
-  }, [searchQuery, selectedType]);
+  }, [stores, addMarkers]);
 
-  const toggleMap = () => {
-    setIsMapExpanded(!isMapExpanded);
-    if (map.current) {
-      setTimeout(() => {
-        map.current?.resize();
-      }, 300);
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+        <div className="text-center p-4">
+          <div className="text-red-500 mb-2">
+            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="relative w-full bg-gray-100 rounded-lg overflow-hidden">
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      )}
-      
-      {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-          <div className="text-red-500 text-center p-4">
-            <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            {error}
-          </div>
-        </div>
-      )}
-
-      <button
-        onClick={toggleMap}
-        className="absolute top-4 right-4 z-10 bg-white px-4 py-2 rounded-lg shadow-md hover:bg-gray-100 transition-colors"
-      >
-        {isMapExpanded ? 'Collapse Map' : 'Expand Map'}
-      </button>
-
+    <div className="relative w-full h-full">
+      <style jsx global>{`
+        .store-marker {
+          cursor: pointer;
+        }
+        .store-popup .mapboxgl-popup-content {
+          padding: 0;
+          border-radius: 8px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+      `}</style>
       <div 
         ref={mapContainer} 
-        className={`w-full map-container ${
-          isMapExpanded ? 'h-[70vh]' : 'h-[30vh]'
+        className={`w-full transition-all duration-300 ease-in-out ${
+          isMapExpanded ? 'h-[85vh]' : 'h-[50vh] lg:h-[70vh]'
         }`} 
       />
     </div>
