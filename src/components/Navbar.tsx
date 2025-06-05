@@ -1,15 +1,34 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
+
+  const isActive = (path: string) => pathname === path;
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [pathname]);
+
+  const navItems = [
+    { href: '/', label: 'Home' },
+    { href: '/stores', label: 'Find Stores' },
+    { href: '/products', label: 'Products' },
+    { href: '/analytics', label: 'Analytics' },
+    { href: '/shop/dashboard', label: 'Shop Dashboard' },
+    { href: '/feedback', label: 'Feedback' },
+    { href: '/signin', label: 'Sign In' },
+  ];
 
   return (
-    <nav className="bg-primary p-4 relative z-50">
+    <nav className="bg-primary p-4 fixed top-0 left-0 right-0 z-50 shadow-lg">
       <div className="container mx-auto flex justify-between items-center">
-        <Link href="/" className="text-white text-2xl font-bold">Connect You</Link>
+        <Link href="/" className="text-white text-2xl font-bold hover:text-blue-200 transition-colors">Connect You</Link>
         
         {/* Mobile menu button */}
         <button
@@ -28,29 +47,41 @@ export default function Navbar() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex space-x-6">
-          <Link href="/" className="text-white hover:text-gray-200">Home</Link>
-          <Link href="/stores" className="text-white hover:text-gray-200">Find Stores</Link>
-          <Link href="/products" className="text-white hover:text-gray-200">Products</Link>
-          <Link href="/analytics" className="text-white hover:text-gray-200">Analytics</Link>
-          <Link href="/shop/dashboard" className="text-white hover:text-gray-200">Shop Dashboard</Link>
-          <Link href="/feedback" className="text-white hover:text-gray-200">Feedback</Link>
-          <Link href="/signin" className="text-white hover:text-gray-200">Sign In</Link>
+          {navItems.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className={`text-white px-3 py-2 rounded-md transition-colors ${
+                isActive(href)
+                  ? 'bg-primary-dark font-semibold'
+                  : 'hover:bg-primary-dark/50'
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
         </div>
 
         {/* Mobile Navigation */}
         <div 
-          className={`absolute top-16 left-0 right-0 bg-primary md:hidden transform transition-transform duration-300 ease-in-out ${
+          className={`fixed top-16 left-0 right-0 bg-primary md:hidden transform transition-transform duration-300 ease-in-out ${
             isMenuOpen ? 'translate-y-0' : '-translate-y-full'
           }`}
         >
           <div className="flex flex-col items-center py-2 shadow-lg">
-            <Link href="/" className="text-white py-3 w-full text-center hover:bg-primary-dark active:bg-primary-darker transition-colors">Home</Link>
-            <Link href="/stores" className="text-white py-3 w-full text-center hover:bg-primary-dark active:bg-primary-darker transition-colors">Find Stores</Link>
-            <Link href="/products" className="text-white py-3 w-full text-center hover:bg-primary-dark active:bg-primary-darker transition-colors">Products</Link>
-            <Link href="/analytics" className="text-white py-3 w-full text-center hover:bg-primary-dark active:bg-primary-darker transition-colors">Analytics</Link>
-            <Link href="/shop/dashboard" className="text-white py-3 w-full text-center hover:bg-primary-dark active:bg-primary-darker transition-colors">Shop Dashboard</Link>
-            <Link href="/feedback" className="text-white py-3 w-full text-center hover:bg-primary-dark active:bg-primary-darker transition-colors">Feedback</Link>
-            <Link href="/signin" className="text-white py-3 w-full text-center hover:bg-primary-dark active:bg-primary-darker transition-colors">Sign In</Link>
+            {navItems.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className={`text-white py-3 w-full text-center ${
+                  isActive(href)
+                    ? 'bg-primary-dark font-semibold'
+                    : 'hover:bg-primary-dark active:bg-primary-darker'
+                } transition-colors`}
+              >
+                {label}
+              </Link>
+            ))}
           </div>
         </div>
       </div>

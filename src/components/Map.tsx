@@ -37,11 +37,18 @@ export default function Map({ searchQuery, selectedType }: MapProps) {
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<mapboxgl.Marker[]>([]);
   const [mapboxInstance, setMapboxInstance] = useState<typeof mapboxgl | null>(null);
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       import('mapbox-gl').then((mapbox) => {
         setMapboxInstance(mapbox.default);
+        setIsLoading(false);
+      }).catch(err => {
+        setError('Failed to load map. Please try again later.');
+        setIsLoading(false);
       });
     }
   }, []);
@@ -135,7 +142,47 @@ export default function Map({ searchQuery, selectedType }: MapProps) {
     addMarkers();
   }, [searchQuery, selectedType]);
 
+  const toggleMap = () => {
+    setIsMapExpanded(!isMapExpanded);
+    if (map.current) {
+      setTimeout(() => {
+        map.current?.resize();
+      }, 300);
+    }
+  };
+
   return (
-    <div ref={mapContainer} className="w-full h-[calc(100vh-4rem)]" />
+    <div className="relative w-full bg-gray-100 rounded-lg overflow-hidden">
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      )}
+      
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+          <div className="text-red-500 text-center p-4">
+            <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            {error}
+          </div>
+        </div>
+      )}
+
+      <button
+        onClick={toggleMap}
+        className="absolute top-4 right-4 z-10 bg-white px-4 py-2 rounded-lg shadow-md hover:bg-gray-100 transition-colors"
+      >
+        {isMapExpanded ? 'Collapse Map' : 'Expand Map'}
+      </button>
+
+      <div 
+        ref={mapContainer} 
+        className={`w-full map-container ${
+          isMapExpanded ? 'h-[70vh]' : 'h-[30vh]'
+        }`} 
+      />
+    </div>
   );
 }
