@@ -3,9 +3,24 @@ from flask_cors import CORS
 import pandas as pd
 import json
 from datetime import datetime
+import os
+import sys
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app)
+
+# Ensure the data directory exists
+try:
+    if not os.path.exists('data'):
+        os.makedirs('data')
+except Exception as e:
+    logger.error(f"Failed to create data directory: {e}")
+    sys.exit(1)
 
 # Load store data from a JSON file (we'll create this later)
 def load_store_data():
@@ -99,4 +114,27 @@ def health_check():
     })
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    try:
+        # Check if port 5000 is available
+        import socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = sock.connect_ex(('127.0.0.1', 5000))
+        sock.close()
+        
+        if result == 0:
+            logger.warning("Port 5000 is already in use. Trying port 5001...")
+            port = 5001
+        else:
+            port = 5000
+            
+        # Run the Flask app
+        logger.info(f"Starting Flask server on port {port}")
+        app.run(
+            host='0.0.0.0',
+            port=port,
+            debug=True,
+            use_reloader=True
+        )
+    except Exception as e:
+        logger.error(f"Failed to start Flask server: {e}")
+        sys.exit(1)
