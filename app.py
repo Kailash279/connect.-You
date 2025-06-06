@@ -1,140 +1,152 @@
-from flask import Flask, jsonify, request
-from flask_cors import CORS
+import streamlit as st
 import pandas as pd
+import folium
+from streamlit_folium import folium_static
 import json
-from datetime import datetime
 import os
-import sys
+from typing import Optional
 import logging
+import sys
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('app.log'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
-CORS(app)
+# Constants
+DATA_DIR = 'data'
+STORES_FILE = os.path.join(DATA_DIR, 'stores.json')
 
-# Ensure the data directory exists
-try:
-    if not os.path.exists('data'):
-        os.makedirs('data')
-except Exception as e:
-    logger.error(f"Failed to create data directory: {e}")
-    sys.exit(1)
-
-# Load store data from a JSON file (we'll create this later)
-def load_store_data():
+def load_store_data() -> pd.DataFrame:
+    """Load store data from JSON file with error handling."""
     try:
-        with open('data/stores.json', 'r') as f:
-            return pd.DataFrame(json.load(f))
-    except FileNotFoundError:
-        # Sample data if file doesn't exist
-        return pd.DataFrame({
-            'id': range(1, 6),
-            'name': ['Central Grocery', 'City Books', 'Electronics Hub', 'Fashion Store', 'General Shop'],
-            'type': ['grocery', 'books', 'electronics', 'clothing', 'general'],
-            'address': [
-                '123 Main St, New York, NY',
-                '456 Book Lane, New York, NY',
-                '789 Tech Ave, New York, NY',
-                '321 Fashion Blvd, New York, NY',
-                '654 Market St, New York, NY'
-            ],
-            'lat': [40.7128, 40.7138, 40.7148, 40.7158, 40.7168],
-            'lon': [-74.0060, -74.0070, -74.0080, -74.0090, -74.0100],
-            'rating': [4.5, 4.8, 4.2, 4.6, 4.4],
-            'reviews': [120, 85, 95, 150, 75]
-        })
-
-@app.route('/api/stores', methods=['GET'])
-def get_stores():
-    store_type = request.args.get('type', 'all').lower()
-    search_query = request.args.get('query', '').lower()
-    
-    df = load_store_data()
-    
-    # Apply filters
-    if store_type != 'all':
-        df = df[df['type'] == store_type]
-    
-    if search_query:
-        df = df[
-            df['name'].str.lower().str.contains(search_query) |
-            df['address'].str.lower().str.contains(search_query)
-        ]
-    
-    # Convert to dictionary format
-    stores = df.to_dict('records')
-    return jsonify({
-        'stores': stores,
-        'total': len(stores),
-        'timestamp': datetime.now().isoformat()
-    })
-
-@app.route('/api/store-types', methods=['GET'])
-def get_store_types():
-    df = load_store_data()
-    types = sorted(df['type'].unique().tolist())
-    return jsonify({
-        'types': types,
-        'total': len(types)
-    })
-
-@app.route('/api/analytics', methods=['GET'])
-def get_analytics():
-    df = load_store_data()
-    
-    analytics = {
-        'total_stores': len(df),
-        'stores_by_type': df['type'].value_counts().to_dict(),
-        'average_rating': df['rating'].mean(),
-        'total_reviews': df['reviews'].sum(),
-        'top_rated': df.nlargest(5, 'rating')[['name', 'rating', 'type']].to_dict('records')
-    }
-    
-    return jsonify(analytics)
-
-@app.route('/api/feedback', methods=['POST'])
-def submit_feedback():
-    feedback = request.json
-    # In a real application, you would save this to a database
-    # For now, we'll just return a success message
-    return jsonify({
-        'status': 'success',
-        'message': 'Feedback received successfully',
-        'timestamp': datetime.now().isoformat()
-    })
-
-# Health check endpoint
-@app.route('/health', methods=['GET'])
-def health_check():
-    return jsonify({
-        'status': 'healthy',
-        'timestamp': datetime.now().isoformat()
-    })
-
-if __name__ == '__main__':
-    try:
-        # Check if port 5000 is available
-        import socket
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        result = sock.connect_ex(('127.0.0.1', 5000))
-        sock.close()
-        
-        if result == 0:
-            logger.warning("Port 5000 is already in use. Trying port 5001...")
-            port = 5001
+        if os.path.exists(STORES_FILE):
+            with open(STORES_FILE, 'r') as f:
+                data = json.load(f)
+                stores = data.get('stores', [])
+                df = pd.DataFrame(stores)
+                # Rename lon to lng for consistency
+                if 'lon' in df.columns:
+                    df = df.rename(columns={'lon': 'lng'})
+                logger.info(f"Loaded {len(df)} stores from {STORES_FILE}")
+                return df
         else:
-            port = 5000
-            
-        # Run the Flask app
-        logger.info(f"Starting Flask server on port {port}")
-        app.run(
-            host='0.0.0.0',
-            port=port,
-            debug=True,
-            use_reloader=True
-        )
+            logger.warning(f"Store data file not found at {STORES_FILE}")
+            return pd.DataFrame()
     except Exception as e:
-        logger.error(f"Failed to start Flask server: {e}")
-        sys.exit(1)
+        logger.error(f"Error loading store data: {e}")
+        return pd.DataFrame()
+
+def create_map(df: pd.DataFrame, selected_type: Optional[str] = None) -> folium.Map:
+    """Create a Folium map with store markers."""
+    # Filter stores by type if selected
+    if selected_type and selected_type != 'all':
+        df = df[df['type'] == selected_type]
+
+    # Create map centered on the mean coordinates
+    center_lat = df['lat'].mean() if not df.empty else 40.7128
+    center_lng = df['lng'].mean() if not df.empty else -74.0060
+    m = folium.Map(location=[center_lat, center_lng], zoom_start=12)
+
+    # Add markers for each store
+    for _, store in df.iterrows():
+        popup_html = f"""
+        <div style='width: 200px'>
+            <h4>{store['name']}</h4>
+            <p><strong>Type:</strong> {store['type'].title()}</p>
+            <p><strong>Address:</strong> {store['address']}</p>
+            <p><strong>Rating:</strong> {'⭐' * int(store['rating'])} ({store['reviews']} reviews)</p>
+        </div>
+        """
+        folium.Marker(
+            [store['lat'], store['lng' if 'lng' in store else 'lon']],
+            popup=folium.Popup(popup_html, max_width=300),
+            tooltip=store['name']
+        ).add_to(m)
+    
+    return m
+
+def load_css():
+    """Load custom CSS"""
+    try:
+        with open('style.css', 'r') as f:
+            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    except Exception as e:
+        logger.error(f"Error loading CSS: {e}")
+
+def main():
+    # Page config
+    st.set_page_config(
+        page_title="Store Locator",
+        page_icon="🏪",
+        layout="wide"
+    )
+
+    # Load custom CSS
+    load_css()
+
+    # Navigation bar
+    st.markdown("""
+        <div class="navbar">
+            <div class="nav-brand">Store Locator</div>
+            <div class="nav-links">
+                <a href="/" class="nav-link active">Home</a>
+                <a href="/stores" class="nav-link">Stores</a>
+                <a href="/analytics" class="nav-link">Analytics</a>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Load store data
+    df = load_store_data()
+
+    # Sidebar filters
+    st.sidebar.title("Filters")
+    store_types = ['all'] + sorted(df['type'].unique().tolist()) if not df.empty else ['all']
+    selected_type = st.sidebar.selectbox('Store Type', store_types)
+    search_query = st.sidebar.text_input('Search Stores')
+
+    # Apply filters
+    filtered_df = df.copy()
+    if search_query:
+        filtered_df = filtered_df[
+            filtered_df['name'].str.lower().str.contains(search_query.lower()) |
+            filtered_df['address'].str.lower().str.contains(search_query.lower())
+        ]
+
+    if selected_type != 'all':
+        filtered_df = filtered_df[filtered_df['type'] == selected_type]
+
+    # Main content
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        st.title("Find Stores Near You")
+        show_map = st.button("Show Map")
+        
+        if show_map and not filtered_df.empty:
+            # Create and display map
+            m = create_map(filtered_df)
+            folium_static(m, width=800)
+        elif show_map:
+            st.warning("No stores found matching your criteria.")
+
+    with col2:
+        st.markdown("""
+            ## Welcome to Store Locator
+            Use the sidebar filters to:
+            - Select store type
+            - Search for specific stores
+            - View store locations on the map
+            
+            Click the 'Show Map' button to display the interactive map.
+        """)
+
+if __name__ == "__main__":
+    main()
