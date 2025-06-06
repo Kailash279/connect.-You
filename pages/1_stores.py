@@ -19,39 +19,84 @@ st.set_page_config(
 load_css()
 
 # Load store data
-df = load_store_data()
+try:
+    df = load_store_data()
+except Exception as e:
+    st.error(f"Error loading store data: {str(e)}")
+    st.stop()
 
 # Sidebar filters
-st.sidebar.title("Filters")
-store_types = ['all'] + sorted(df['type'].unique().tolist())
-selected_type = st.sidebar.selectbox('Store Type', store_types)
-search_query = st.sidebar.text_input('Search Stores')
+with st.sidebar:
+    st.title("Filters")
+    store_types = ['all'] + sorted(df['type'].unique().tolist())
+    selected_type = st.selectbox('Store Type', store_types)
+    search_query = st.text_input('Search Stores')
+    
+    # Reset filters button
+    if st.button('Reset Filters', type='secondary'):
+        selected_type = 'all'
+        search_query = ''
 
 # Filter data
+filtered_df = df.copy()
 if search_query:
-    df = df[
-        df['name'].str.lower().str.contains(search_query.lower()) |
-        df['address'].str.lower().str.contains(search_query.lower())
+    filtered_df = filtered_df[
+        filtered_df['name'].str.lower().str.contains(search_query.lower()) |
+        filtered_df['address'].str.lower().str.contains(search_query.lower())
     ]
 
 if selected_type and selected_type != 'all':
-    df = df[df['type'] == selected_type]
+    filtered_df = filtered_df[filtered_df['type'] == selected_type]
 
 # Main content
 st.title("📍 Store Locations")
 
-if st.button("Show Map"):
-    m = create_map(df, selected_type)
-    folium_static(m, width=1000, height=600)
+# Map toggle with better styling
+show_map = st.checkbox("Show Map", value=False)
+if show_map:
+    try:
+        m = create_map(filtered_df, selected_type)
+        folium_static(m, width=None, height=400)
+    except Exception as e:
+        st.error(f"Error displaying map: {str(e)}")
 
-# Store list
-st.subheader(f"Found {len(df)} stores")
-for _, store in df.iterrows():
-    with st.expander(f"{store['name']} - {store['type'].title()}"):
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.write(f"**Address:** {store['address']}")
-            st.write(f"**Type:** {store['type'].title()}")
-        with col2:
-            st.write(f"**Rating:** {'⭐' * int(store['rating'])}")
-            st.write(f"**Reviews:** {store['reviews']}")
+# Store list with improved layout
+st.subheader(f"Found {len(filtered_df)} stores")
+
+# Create two columns for the grid layout
+col1, col2 = st.columns(2)
+
+# Iterate through stores and display them in alternating columns
+for idx, (_, store) in enumerate(filtered_df.iterrows()):
+    # Choose column based on index
+    current_col = col1 if idx % 2 == 0 else col2
+    
+    with current_col:
+        st.markdown(f"""
+            <div style="
+                padding: 1rem;
+                border-radius: 0.5rem;
+                background: white;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+                margin-bottom: 1rem;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                &:hover {{
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                }}
+            ">
+                <h3 style="margin:0;color:#1F2937;font-size:1.25rem">{store['name']}</h3>
+                <div style="display:flex;align-items:center;gap:0.5rem;margin:0.5rem 0">
+                    <span style="background:#E5E7EB;padding:2px 8px;border-radius:9999px;font-size:0.875rem">
+                        {store['type'].title()}
+                    </span>
+                    <span style="color:#4B5563;font-size:0.875rem">
+                        {'⭐' * int(store['rating'])} ({store['reviews']} reviews)
+                    </span>
+                </div>
+                <p style="color:#4B5563;margin:0.5rem 0;display:flex;align-items:center;gap:0.5rem">
+                    <span>📍</span> {store['address']}
+                </p>
+            </div>
+        """, unsafe_allow_html=True)

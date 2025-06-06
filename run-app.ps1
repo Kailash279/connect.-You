@@ -14,4 +14,7 @@ pip install -r requirements.txt
 
 # Run the Streamlit app
 Write-Host "Starting Streamlit app..."
+# Start the Streamlit application
+Write-Host "Starting Store Locator application..."
+$env:PYTHONPATH = $PWD
 streamlit run app.py
