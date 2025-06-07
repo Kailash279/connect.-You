@@ -6,6 +6,126 @@
     background-color: #F3F4F6;
 }
 
+/* Hide default Streamlit menu */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+.stDeployButton {display:none;}
+
+/* Card styling */
+.card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Button styling */
+.stButton > button {
+    background-color: #2563EB;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.stButton > button:hover {
+    background-color: #1D4ED8;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Select box styling */
+.stSelectbox > div > div {
+    background-color: white;
+    border-radius: 0.375rem;
+}
+
+/* Metrics styling */
+.metric-container {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+/* Map container */
+.folium-map {
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+/* Store card */
+.store-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    margin-bottom: 1rem;
+    transition: transform 0.2s ease;
+}
+
+.store-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+    color: #1F2937;
+}
+
+p {
+    color: #4B5563;
+}
+
+/* Section spacing */
+section {
+    margin: 2rem 0;
+    padding: 2rem 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .store-card {
+        padding: 1rem;
+    }
+    
+    .metric-container {
+        padding: 1rem;
+    }
+    
+    section {
+        margin: 1rem 0;
+        padding: 1rem 0;
+    }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #F3F4F6;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #2563EB;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #1D4ED8;
+}
+
 /* Navigation styling */
 div.navbar {
     background-color: #2563EB;
@@ -86,87 +206,4 @@ div.navbar {
 
 .nav-link.active {
     background-color: rgba(255, 255, 255, 0.2);
-}
-
-.store-card {
-    background-color: white;
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-    margin-bottom: 1rem;
-    transition: transform 0.2s ease-in-out;
-}
-
-/* Custom Streamlit components */
-.stButton > button {
-    background-color: #2563EB;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.375rem;
-    font-weight: 500;
-    transition: all 0.2s;
-    width: auto;
-}
-
-.stButton > button:hover {
-    background-color: #1D4ED8;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-/* Metric cards */
-.metric-container {
-    background-color: white;
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-    height: 100%;
-}
-
-.store-card:hover {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    transform: translateY(-2px);
-    transition: all 0.2s ease;
-}
-
-/* Responsive layout */
-@media (max-width: 768px) {
-    .store-card {
-        padding: 1rem;
-    }
-    
-    .navbar {
-        flex-direction: column;
-        text-align: center;
-        padding: 1rem;
-        gap: 1rem;
-    }
-
-    .nav-links {
-        flex-direction: row;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-
-    .nav-link {
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
-    }
-}
-
-/* Sidebar styling */
-.css-1d391kg {
-    background-color: #f8f9fa;
-}
-
-.stSelectbox > div > div {
-    background-color: white;
-    border-radius: 4px;
-}
-
-/* Map container */
-.folium-map {
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
